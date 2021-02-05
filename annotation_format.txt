@@ -1,0 +1,21 @@
+------------------------FILE FORMAT----------------------------------------------
+.xml
+------------------------HEAD-----------------------------------------------------
+<annotation>
+    <filename>{name}</filename>
+    <size>
+        <width>{width}</width>
+        <height>{height}</height>
+    </size>
+-----------------------FOR EACH OBJECT--------------------------------------------
+    <object>
+        <name>{name}</name>
+        <bndbox>
+            <xmin>{xmin}</xmin>
+            <ymin>{ymin}</ymin>
+            <xmax>{xmax}</xmax>
+            <ymax>{ymax}</ymax>
+        </bndbox>
+    </object>
+----------------------ENDING-----------------------------------------------------
+</annotation>
