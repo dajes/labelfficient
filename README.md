@@ -43,7 +43,7 @@ hotkeys and almost all functionality of the tool is available only by using hotk
 
 ## Bounding box editing
 Bounding boxes can be easily corrected by using only your mouse.<br>
-###To modify a box, hover the mouse over the box and do one of the actions:
+### To modify a box, hover the mouse over the box and do one of the actions:
 
 | Action with a bounding box | How to do                                    |
 |----------------------------|----------------------------------------------|
