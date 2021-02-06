@@ -50,6 +50,7 @@ Bounding boxes can be easily corrected by using only your mouse.<br>
 | Delete                     | Right click                                  |
 | Move                       | Left-Click on the inner area                 |
 | Resize                     | Left-Click on the corner or edge of interest |
+
 ***If you are hovering the mouse over several boxes, you can see what box is going to be affected
 as it is indicated by dots on corners and edges of the box.<br>
 Focused box in this case is determined by proximity of the mouse to an edge of the boxes, the closest one is chosen.***
