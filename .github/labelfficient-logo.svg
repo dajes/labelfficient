@@ -1,0 +1,28 @@
+<svg width="1280" height="260" xmlns="http://www.w3.org/2000/svg">
+ <!-- Created with Method Draw - http://github.com/duopixel/Method-Draw/ -->
+ <defs>
+  <filter id="svg_26_blur">
+   <feGaussianBlur stdDeviation="0" in="SourceGraphic"/>
+  </filter>
+ </defs>
+ <g>
+  <title>background</title>
+  <rect fill="none" id="canvas_background" height="262" width="1282" y="-1" x="-1"/>
+  <g display="none" overflow="visible" y="0" x="0" height="100%" width="100%" id="canvasGrid">
+   <rect fill="url(#gridpattern)" stroke-width="0" y="0" x="0" height="100%" width="100%"/>
+  </g>
+ </g>
+ <g>
+  <title>Layer 1</title>
+  <text stroke-width="2" stroke="#000" transform="matrix(1.2310135531105117,0,0,1.2310135531105117,293.3486351608537,-5.613131809668566) " font-style="normal" font-weight="normal" xml:space="preserve" text-anchor="start" font-family="'Racing Sans One'" font-size="98" id="svg_1" y="117.19117" x="-71.73912" fill="#ffffff">LABELFFICIENT</text>
+  <rect stroke="#94ecf0" id="svg_11" height="183.58587" width="174.07409" y="8.70068" x="7.43313" fill-opacity="null" stroke-width="6" fill="none"/>
+  <rect stroke="#94ecf0" id="svg_12" height="167.22223" width="156.51517" y="16.62997" x="15.98532" fill-opacity="null" stroke-width="2" fill="none"/>
+  <path id="svg_16" d="m179.89819,190.98418" opacity="0.5" stroke-width="2" stroke="#000000" fill="#ffffff"/>
+  <path id="svg_18" d="m181.12127,192.16393l58.57162,22.61911l-28.33343,8.33336l-7.38098,29.04772l-22.85721,-60.00019z" stroke-width="2" stroke="#000000" fill="#ffffff"/>
+  <ellipse stroke="#000000" ry="8" rx="1.15269" id="svg_20" cy="174.17648" cx="179.71009" fill-opacity="null" stroke-opacity="null" fill="#ffffff"/>
+  <ellipse stroke="#000000" transform="rotate(45 189.70588684082034,180.17648315429685) " ry="8" rx="1.15269" id="svg_21" cy="180.17648" cx="189.70588" fill-opacity="null" stroke-opacity="null" fill="#ffffff"/>
+  <ellipse stroke="#000000" transform="rotate(-135 168.7058868408203,201.17648315429688) " ry="8" rx="1.15269" id="svg_24" cy="201.17648" cx="168.70588" fill-opacity="null" stroke-opacity="null" fill="#ffffff"/>
+  <ellipse stroke="#000000" transform="rotate(-90 163.70588684082034,190.7940673828125) " ry="8" rx="1.15269" id="svg_25" cy="190.79408" cx="163.70588" fill-opacity="null" stroke-opacity="null" fill="#ffffff"/>
+  <ellipse filter="url(#svg_26_blur)" stroke="#000000" transform="rotate(-45 168.70588684082026,180.17648315429685) " ry="8" rx="1.15269" id="svg_26" cy="180.17648" cx="168.70588" fill-opacity="null" stroke-opacity="null" fill="#ffffff"/>
+ </g>
+</svg>
