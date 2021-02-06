@@ -225,9 +225,12 @@ class LabelTool:
         self.btn_clear = tk.Button(self.frame, text='Clear labels', command=self.clear_bbox)
         self.btn_clear.grid(row=2, column=2, sticky=tk.W + tk.E + tk.N)
 
+        self._sort_var = tk.IntVar()
+        self.sort_check = tk.Checkbutton(self.frame, text='Sort pixel distance when loading', variable=self._sort_var)
+        self.sort_check.grid(row=3, column=2, sticky=tk.E)
         self._cuda_var = tk.IntVar()
         self.cuda_check = tk.Checkbutton(self.frame, text='Use cuda for tracking', variable=self._cuda_var)
-        self.cuda_check.grid(row=3, column=2, sticky=tk.E)
+        self.cuda_check.grid(row=4, column=2, sticky=tk.E + tk.N)
 
         self.lb3 = tk.Label(self.frame, text='Type class to add:')
         self.lb3.grid(row=4, column=2, sticky=tk.W + tk.E + tk.S)
@@ -393,30 +396,35 @@ class LabelTool:
 
         images = np.array(sorted(images))
 
-        dataset = ImagesDataset(images, resize=IMG_SIZE)
-        dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, num_workers=0, collate_fn=dataset.collate_fn)
-        dataloader = tqdm(dataloader, desc=f'Arranging images', leave=False)
+        if self._sort_var.get():
+            dataset = ImagesDataset(images, resize=IMG_SIZE)
+            dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, num_workers=0, collate_fn=dataset.collate_fn)
+            dataloader = tqdm(dataloader, desc=f'Arranging images', leave=False)
 
-        all_images = []
-        for img_batch, in dataloader:
-            all_images += img_batch
+            all_images = []
+            for img_batch, in dataloader:
+                all_images += img_batch
 
-        if len(all_images) == 0:
-            print('No .JPEG images found in the specified dir!')
-            return
-        all_images = np.array(all_images).reshape([len(all_images), -1])
-        assert len(all_images) > 0
-        pca = PCA(min([N_COMPONENTS, *all_images.shape]))
-        features = pca.fit_transform(all_images)
+            if len(all_images) == 0:
+                print('No .JPEG images found in the specified dir!')
+                return
+            all_images = np.array(all_images).reshape([len(all_images), -1])
+            assert len(all_images) > 0
+            pca = PCA(min([N_COMPONENTS, *all_images.shape]))
+            features = pca.fit_transform(all_images)
 
-        possible_idx = list(range(1, len(features)))
-        rearrange = [0]
-        while len(possible_idx) > 0:
-            feature = 2 * features[rearrange[-1]] - features[rearrange[-2:][0]]
-            distances = np.sum((features[possible_idx] - feature) ** 2, axis=1)
-            rearrange.append(possible_idx.pop(int(np.argmin(distances))))
-        self.image_list = images[rearrange]
-        self.features = features[rearrange]
+            possible_idx = list(range(1, len(features)))
+            rearrange = [0]
+            while len(possible_idx) > 0:
+                feature = 2 * features[rearrange[-1]] - features[rearrange[-2:][0]]
+                distances = np.sum((features[possible_idx] - feature) ** 2, axis=1)
+                rearrange.append(possible_idx.pop(int(np.argmin(distances))))
+            images = images[rearrange]
+            features = features[rearrange]
+        else:
+            features = None
+        self.image_list = images
+        self.features = features
         self.labeled = 0
         self.labeled_arr = np.zeros(len(self.image_list), dtype=bool)
 
@@ -426,6 +434,10 @@ class LabelTool:
         self.load_image()
 
     def find_outlier(self, _=None):
+        if self.features is None:
+            tk.messagebox.showerror("Not implemented",
+                                    "For the sake of performance, you can find outliers only when "
+                                    "loading images with pixel sorting enabled")
         unwatched = list(range(len(self.image_list)))
         for idx in sorted(set(self.watched), reverse=True):
             del unwatched[idx]
