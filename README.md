@@ -1,4 +1,4 @@
-# ![Speed comparison of new tracking approach with old manual one](.github/labelfficient-logo.svg)
+<img src=".github/labelfficient-logo.svg" width="600">
 
 Labelfficient is a simple yet customizable and efficient tool for creating object detection labels.
 
@@ -17,7 +17,9 @@ and checking the results, so intensity of clicking is at least 4 times smaller a
 smaller in this example.***
 
 
-![Speed comparison of new tracking approach with old manual one](https://user-images.githubusercontent.com/18720858/107127200-2f80a600-68bd-11eb-862b-8209448cdc8d.gif)
+<div align="center">
+  <img src="https://user-images.githubusercontent.com/18720858/107127200-2f80a600-68bd-11eb-862b-8209448cdc8d.gif"/>
+</div>
 
 ---
 ## Hotkeys
