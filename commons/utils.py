@@ -4,7 +4,8 @@ from typing import Union, List
 
 
 def _append_file(images, filename, endswith, startswith, dirname, only_names, remove_root_folder, path):
-    if filename.endswith(endswith) and filename.startswith(startswith):
+    _filename = filename.lower()
+    if _filename.endswith(endswith) and _filename.startswith(startswith):
         if remove_root_folder:
             dirname = dirname[len(path) + 1:]
         if only_names:

@@ -26,7 +26,7 @@ COLORS = ['red', 'blue', 'green', 'black', 'pink']
 IMG_SIZE = 64
 N_COMPONENTS = 64
 BATCH_SIZE = 32
-FORMAT = '.jpg'
+FORMAT = ['.jpg', '.jpeg', '.png']
 POSIX = os.name == 'posix'
 
 HALF = 1 / 2 ** 1.5
@@ -392,7 +392,9 @@ class LabelTool:
     def load_dir(self, _=False, image_dir=None):
         if image_dir is None:
             image_dir = self.entry.get()
-        images = get_all_files(image_dir, FORMAT)
+        images = []
+        for _format in FORMAT:
+            images += get_all_files(image_dir, _format)
 
         images = np.array(sorted(images))
 
