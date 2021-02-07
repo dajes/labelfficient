@@ -54,7 +54,7 @@ class KeyCodes:
 
 
 # noinspection PyTypeChecker,PyUnresolvedReferences
-class LabelTool:
+class Labelfficient:
     BBOX_FORMAT = '%s [%d, %d, %d, %d]'
     RELATIVE_SIZE = 0.7
     POINT_RADIUS = 7
@@ -152,11 +152,13 @@ class LabelTool:
         self.tracker = None
         self.parent = master
         self.parent.attributes("-fullscreen", True)
-        self.parent.title("LabelTool")
+        self.parent.title("Labelfficient")
         self.default_cursor = ''
         self.frame = tk.Frame(self.parent)
         self.frame.pack(fill=tk.BOTH, expand=1)
         self.parent.resizable(width=tk.FALSE, height=tk.FALSE)
+
+        self.parent.iconphoto(False, ImageTk.PhotoImage(file='icon.png'))
 
         self.image_list = []
         self.features = []
@@ -847,5 +849,5 @@ class LabelTool:
 
 if __name__ == '__main__':
     root = tk.Tk()
-    tool = LabelTool(root)
+    tool = Labelfficient(root)
     root.mainloop()
