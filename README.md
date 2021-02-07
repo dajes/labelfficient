@@ -79,3 +79,12 @@ Focused box in this case is determined by proximity of the mouse to an edge of t
 Labelfficient supports any annotation format that is parsable by regex pattern matching, you can edit the format
 by changing the ```annotation_format.txt``` file.
 #### If you change the annotation format after creating annotations for some images they can be misinterpreted when loading
+
+Annotation files can be stored in 2 formats, depending on whether the dataset has or has not "Images" subfolder. Examples:
+| Image path                | Annotation path                      |
+|---------------------------|--------------------------------------|
+| ../dataset/Images/cat.jpg | ../dataset/Annotations/cat.xml       |
+| ../dataset/cat.jpg        | ../dataset_Annotations/cat.xml       |
+| ../dataset/Image/cat.png  | ../dataset/Image_Annotations/cat.xml |
+
+
