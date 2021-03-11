@@ -1,5 +1,6 @@
-from typing import List, Union
 import re
+from typing import List, Union
+
 import numpy as np
 
 
@@ -69,8 +70,15 @@ def create_annotation(name: str, labels: List[str], bboxes: List[List[Union[int,
     annotation = annotation_format['head'].format(name=name, width=width, height=height)
 
     for label, bbox in zip(labels, bboxes):
-        annotation += annotation_format['object'].format(name=label, xmin=bbox[0],
-                                                         ymin=bbox[1], xmax=bbox[2], ymax=bbox[3])
+        _format = annotation_format['object']
+        while True:
+            try:
+                annotation += _format.format(name=label, xmin=bbox[0],
+                                             ymin=bbox[1], xmax=bbox[2], ymax=bbox[3])
+            except KeyError as e:
+                _format = _format.replace('{' + e.args[0] + '}', '')
+            else:
+                break
 
     annotation += annotation_format['ending']
     return annotation

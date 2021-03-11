@@ -81,6 +81,7 @@ by changing the ```annotation_format.txt``` file.
 #### If you change the annotation format after creating annotations for some images they can be misinterpreted when loading
 
 Annotation files can be stored in 2 formats, depending on whether the dataset has or has not "Images" subfolder. Examples:
+
 | Image path                | Annotation path                      |
 |---------------------------|--------------------------------------|
 | ../dataset/Images/cat.jpg | ../dataset/Annotations/cat.xml       |

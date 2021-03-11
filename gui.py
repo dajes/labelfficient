@@ -20,7 +20,7 @@ from commons.siam_mask.siam_tracker import SiamTracker
 from commons.system_information.screen import get_target_size, RESOLUTION
 from commons.utils import get_all_files, makedirs2file
 
-DEFAULT_PATH = r'D:\datasets\nature_small'
+DEFAULT_PATH = ''
 # colors for the bounding boxes
 COLORS = ['red', 'blue', 'green', 'black', 'pink']
 IMG_SIZE = 64
@@ -46,8 +46,8 @@ class KeyCodes:
     Esc = 9 if POSIX else 27
     L_Shift = 50 if POSIX else 16
     R_Shift = 62 if POSIX else 16
-    C = 55 if POSIX else 67
-    V = 54 if POSIX else 86
+    C = 54 if POSIX else 67
+    V = 55 if POSIX else 86
     A = 38 if POSIX else 65
     ARROW_R = 114 if POSIX else 39
     ARROW_L = 113 if POSIX else 37
@@ -151,12 +151,11 @@ class Labelfficient:
     def __init__(self, master):
         self.tracker = None
         self.parent = master
-        self.parent.attributes("-fullscreen", True)
         self.parent.title("Labelfficient")
         self.default_cursor = ''
         self.frame = tk.Frame(self.parent)
         self.frame.pack(fill=tk.BOTH, expand=1)
-        self.parent.resizable(width=tk.FALSE, height=tk.FALSE)
+        self.parent.resizable(width=tk.TRUE, height=tk.TRUE)
 
         self.parent.iconphoto(False, ImageTk.PhotoImage(file='icon.png'))
 
