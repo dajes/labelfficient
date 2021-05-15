@@ -12,6 +12,8 @@ from PIL import Image, ImageTk
 from sklearn.decomposition import PCA
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
+import time
+import gc
 
 from commons.annotating import create_annotation, parse_annotation, img_name_to_annotation
 from commons.datatypes import Detection
@@ -24,7 +26,6 @@ DEFAULT_PATH = ''
 # colors for the bounding boxes
 COLORS = ['red', 'blue', 'green', 'black', 'pink']
 IMG_SIZE = 64
-N_COMPONENTS = 64
 BATCH_SIZE = 32
 FORMAT = ['.jpg', '.jpeg', '.png']
 POSIX = os.name == 'posix'
@@ -62,8 +63,16 @@ class Labelfficient:
 
     def uncased_bind(self, key, func):
         key = key.split('-')
-        lower_key = '-'.join([k.lower() if len(k) == 1 or (len(k) == 2 and k.endswith('>')) else k for k in key])
-        upper_key = '-'.join([k.upper() if len(k) == 1 or (len(k) == 2 and k.endswith('>')) else k for k in key])
+        lower_key = '-'.join(
+            k.lower() if len(k) == 1 or (len(k) == 2 and k.endswith('>')) else k
+            for k in key
+        )
+
+        upper_key = '-'.join(
+            k.upper() if len(k) == 1 or (len(k) == 2 and k.endswith('>')) else k
+            for k in key
+        )
+
         self.main_panel.bind(lower_key, func)
         self.main_panel.bind(upper_key, func)
         self.uncased_binds.append((lower_key, func))
@@ -201,6 +210,7 @@ class Labelfficient:
         self.entry.grid(row=0, column=1, sticky=tk.W + tk.E)
         self.ld_btn = tk.Button(self.frame, text="Load", command=self.load_dir)
         self.ld_btn.grid(row=0, column=2, sticky=tk.W + tk.E)
+        self.last_clear = time.monotonic()
 
         self.uncased_binds = []
         self.main_panel = tk.Canvas(self.frame)
@@ -218,7 +228,7 @@ class Labelfficient:
         self.uncased_bind("d", self.next_image)
         self.uncased_bind("g", self.predict_next_image)
         self.uncased_bind("f", self.find_outlier)
-        self.main_panel.grid(row=1, column=1, rowspan=9, sticky=tk.W + tk.N)
+        self.main_panel.grid(row=1, column=0, rowspan=9, columnspan=2, sticky=tk.W + tk.N)
         self.main_panel.bind('<Enter>', self._enter_main)
         self.main_panel.bind('<Leave>', self._leave_main)
         self.main_panel.config(width=int(RESOLUTION[0]), height=int(RESOLUTION[1]))
@@ -261,15 +271,6 @@ class Labelfficient:
         self.progress_bar = tk.Label(self.ctr_panel, text="")
         self.progress_bar.pack(side=tk.LEFT, padx=5)
 
-        self.eg_panel = tk.Frame(self.frame, border=10)
-        self.eg_panel.grid(row=1, column=0, rowspan=5, sticky=tk.N)
-        self.tmp_label2 = tk.Label(self.eg_panel, text="Examples:")
-        self.tmp_label2.pack(side=tk.TOP, pady=5)
-        self.eg_labels = []
-        for _ in range(3):
-            self.eg_labels.append(tk.Label(self.eg_panel))
-            self.eg_labels[-1].pack(side=tk.TOP)
-
         self.position_indicator = tk.Label(self.ctr_panel, text='')
         self.position_indicator.pack(side=tk.RIGHT)
 
@@ -301,7 +302,7 @@ class Labelfficient:
                 color = undo_action['color']
 
                 _coords = (np.array(bbox) * self.k * self.scale).round().astype(int)
-                self.bbox_id_list.insert(idx, self.main_panel.create_rectangle(*_coords, width=2, outline=color))
+                self.bbox_id_list.insert(idx, self.draw_bbox(_coords, width=2, outline=color, text=label))
                 self.class_list.insert(idx, label)
                 self.bbox_list.insert(idx, bbox)
                 self.color_list.insert(idx, color)
@@ -411,16 +412,13 @@ class Labelfficient:
             if len(all_images) == 0:
                 print('No .JPEG images found in the specified dir!')
                 return
-            all_images = np.array(all_images).reshape([len(all_images), -1])
-            assert len(all_images) > 0
-            pca = PCA(min([N_COMPONENTS, *all_images.shape]))
-            features = pca.fit_transform(all_images)
+            features = np.array(all_images).reshape([len(all_images), -1])
+            assert len(features) > 0
 
             possible_idx = list(range(1, len(features)))
             rearrange = [0]
             while len(possible_idx) > 0:
-                feature = 2 * features[rearrange[-1]] - features[rearrange[-2:][0]]
-                distances = np.sum((features[possible_idx] - feature) ** 2, axis=1)
+                distances = np.sum((features[possible_idx] - features[rearrange[-1]]) ** 2, axis=1)
                 rearrange.append(possible_idx.pop(int(np.argmin(distances))))
             images = images[rearrange]
             features = features[rearrange]
@@ -441,6 +439,7 @@ class Labelfficient:
             tk.messagebox.showerror("Not implemented",
                                     "For the sake of performance, you can find outliers only when "
                                     "loading images with pixel sorting enabled")
+            return
         unwatched = list(range(len(self.image_list)))
         for idx in sorted(set(self.watched), reverse=True):
             del unwatched[idx]
@@ -470,8 +469,7 @@ class Labelfficient:
                 self.bbox_list.append(bbox)
                 self.color_list.append(color)
                 _bbox = self._to_real_coords(bbox)
-                rect_id = self.main_panel.create_rectangle(_bbox[0], _bbox[1], _bbox[2], _bbox[3], width=2,
-                                                           outline=color)
+                rect_id = self.draw_bbox(_bbox, width=2, outline=color, text=label)
                 self.bbox_id_list.append(rect_id)
         self.add_classes(class_names)
 
@@ -625,6 +623,25 @@ class Labelfficient:
         self.STATE['mouse_pos'] = (x, y)
         return x, y
 
+    def get_sel_label(self, fail_safe=False):
+
+        sel = self.class_listbox.curselection()
+        if len(sel) == 0:
+            if self._autopaste_var.get():
+                self.press_paste_class_btn()
+                sel = self.class_listbox.curselection()
+            else:
+                if not fail_safe:
+                    tk.messagebox.showerror("Please select a class",
+                                            "You should select a class you are trying to add from the right listbox")
+                return '' if fail_safe else None
+        elif len(sel) > 2:
+            if not fail_safe:
+                tk.messagebox.showerror("Please select only 1 class",
+                                        "You should select 1 class you are trying to add from the right listbox")
+            return '' if fail_safe else None
+        return self.class_names[sel[0]]
+
     def mouse_release(self, event):
         self.clear_points()
         x, y = self.get_pos(event)
@@ -639,36 +656,22 @@ class Labelfficient:
                                    'initial': self.STATE['tracking_box'][3:7]})
             self.STATE['tracking_box'] = None
         elif self.STATE['click']:
-            _x, _y = x + self.offset[0], y + self.offset[1]
-            x1, x2 = min(self.STATE['x'], _x), max(self.STATE['x'], _x)
-            y1, y2 = min(self.STATE['y'], _y), max(self.STATE['y'], _y)
-
-            sel = self.class_listbox.curselection()
-            if len(sel) == 0:
-                if self._autopaste_var.get():
-                    self.press_paste_class_btn()
-                    sel = self.class_listbox.curselection()
-                else:
-                    tk.messagebox.showerror("Please select a class",
-                                            "You should select a class you are trying to add from the right listbox")
-                    return
-            elif len(sel) > 2:
-                tk.messagebox.showerror("Please select only 1 class",
-                                        "You should select 1 class you are trying to add from the right listbox")
-                return
-            label = self.class_names[sel[0]]
-
-            self.class_list.append(label)
-            bbox = np.round((np.array([x1, y1, x2, y2]) - self.offset[[0, 1, 0, 1]])
-                            / (self.k * self.scale)).astype(int)
-            self.bbox_list.append(bbox)
-            self.color_list.append(self.STATE['cur_color'])
-            del self.STATE['cur_color']
-            self.undo_list.append({'action': 'create_bbox',
-                                   'id': len(self.bbox_id_list)})
-            self.bbox_id_list.append(self.bbox_id)
-            self.bbox_id = None
-            self.toggle_box_creation()
+            label = self.get_sel_label()
+            if label is not None:
+                _x, _y = x + self.offset[0], y + self.offset[1]
+                x1, x2 = min(self.STATE['x'], _x), max(self.STATE['x'], _x)
+                y1, y2 = min(self.STATE['y'], _y), max(self.STATE['y'], _y)
+                self.class_list.append(label)
+                bbox = np.round((np.array([x1, y1, x2, y2]) - self.offset[[0, 1, 0, 1]])
+                                / (self.k * self.scale)).astype(int)
+                self.bbox_list.append(bbox)
+                self.color_list.append(self.STATE['cur_color'])
+                del self.STATE['cur_color']
+                self.undo_list.append({'action': 'create_bbox',
+                                       'id': len(self.bbox_id_list)})
+                self.bbox_id_list.append(self.bbox_id)
+                self.bbox_id = None
+                self.toggle_box_creation()
 
     def get_mouse_pos(self, event):
         x, y = self.get_pos(event)
@@ -722,6 +725,19 @@ class Labelfficient:
                                               (bbox[1] + bbox[3]) / 2 - mouse_pos[1],
                                               *bbox)
 
+    def draw_bbox(self, bbox, width, outline, text=''):
+        rect_id = self.main_panel.create_rectangle(bbox[0], bbox[1], bbox[2], bbox[3], width=width, outline=outline)
+        bbox_ids = [rect_id]
+        if text:
+            text_id = self.main_panel.create_text(min(bbox[0], bbox[2]), min(bbox[1], bbox[3]) - 3, text=text,
+                                                  anchor=tk.SW, fill=outline)
+            bbox_ids.append(text_id)
+        return bbox_ids
+
+    def delete_bbox(self, bbox_id):
+        for idx in bbox_id:
+            self.main_panel.delete(idx)
+
     def mouse_move(self, event=None):
         x, y = self.get_pos(event)
         _x, _y = x + self.offset[0], y + self.offset[1]
@@ -736,7 +752,7 @@ class Labelfficient:
                                                       self.tk_img.height() + self.offset[1], width=2)
         self.clear_points()
         if self.bbox_id:
-            self.main_panel.delete(self.bbox_id)
+            self.delete_bbox(self.bbox_id)
         if self.STATE['resizing_box'] is not None:
             box_id, x1_mask, y1_mask, x2_mask, y2_mask, *_ = self.STATE['resizing_box']
             coords = self.bbox_list[box_id]
@@ -759,26 +775,26 @@ class Labelfficient:
         elif self.STATE['click']:
             if 'cur_color' not in self.STATE:
                 self.STATE['cur_color'] = COLORS[len(self.bbox_list) % len(COLORS)]
-            self.bbox_id = self.main_panel.create_rectangle(self.STATE['x'], self.STATE['y'],
-                                                            _x, _y, width=2,
-                                                            outline=self.STATE['cur_color'])
+            self.bbox_id = self.draw_bbox([self.STATE['x'], self.STATE['y'], _x, _y], width=2,
+                                          outline=self.STATE['cur_color'], text=self.get_sel_label(fail_safe=True))
         else:
             closest_box, *_ = self.get_closest_box(mouse_pos)
             self.set_focus(closest_box)
 
     def cancel_bbox(self, _=None):
         if self.STATE['click'] and self.bbox_id:
-            self.main_panel.delete(self.bbox_id)
+            self.delete_bbox(self.bbox_id)
             self.bbox_id = None
             self.STATE['click'] = False
 
     def change_bbox(self, idx):
-        self.main_panel.delete(self.bbox_id_list[idx])
+        self.delete_bbox(self.bbox_id_list[idx])
         _coords = self._get_real_bbox(idx)
-        self.bbox_id_list[idx] = self.main_panel.create_rectangle(*_coords, width=2, outline=self.color_list[idx])
+        self.bbox_id_list[idx] = self.draw_bbox(_coords, width=2, outline=self.color_list[idx],
+                                                text=self.class_list[idx])
 
     def del_bbox(self, idx: int = None, save: bool = False):
-        self.main_panel.delete(self.bbox_id_list[idx])
+        self.delete_bbox(self.bbox_id_list[idx])
         self.bbox_id_list.pop(idx)
         label = self.class_list.pop(idx)
         bbox = self.bbox_list.pop(idx)
@@ -794,12 +810,16 @@ class Labelfficient:
 
     def clear_bbox(self):
         for idx in range(len(self.bbox_id_list)):
-            self.main_panel.delete(self.bbox_id_list[idx])
-        self.bbox_id_list.clear()
-        self.class_list.clear()
-        self.bbox_list.clear()
-        self.color_list.clear()
-        self.undo_list.clear()
+            self.delete_bbox(self.bbox_id_list[idx])
+        self.bbox_id_list = []
+        self.class_list = []
+        self.bbox_list = []
+        self.color_list = []
+        self.undo_list = []
+        # Do garbage collection every 5 minutes
+        if time.monotonic() - self.last_clear > 300:
+            gc.collect()
+            self.last_clear = time.monotonic()
 
     def prev_image(self, _=None):
         self.save_image()
@@ -820,7 +840,7 @@ class Labelfficient:
 
     def resize_img(self, img):
         target_size, k = get_target_size(tuple(img.shape[1 - i] for i in range(2)), self.TARGET_IMG_SIZE, return_k=True)
-        img = cv2.resize(img, target_size, interpolation=cv2.INTER_NEAREST)
+        img = cv2.resize(img[..., :3], target_size, interpolation=cv2.INTER_NEAREST)
         return k, img
 
     def track(self, prev_img, cur_img, prev_det):
