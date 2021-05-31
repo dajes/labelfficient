@@ -56,6 +56,7 @@ hotkeys and almost all functionality of the tool is available only by using hotk
 | Ctrl-S      | Save annotation for the current image. Autosaved when switching to another image.                            |
 | Ctrl-Scroll | Zoom in and out using mouse wheel                                                                            |
 | Right-Click | Deletes a bounding box if the cursor points on any.                                                          |
+| Ctrl-Click  | Until the mouse key is released, all boxes that the mouse is hovered on are changed to the active one.       |
 
 ---
 
