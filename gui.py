@@ -1,6 +1,8 @@
 from __future__ import division
 
+import gc
 import os
+import time
 import tkinter as tk
 import tkinter.messagebox
 import warnings
@@ -9,11 +11,8 @@ from collections import deque
 import cv2
 import numpy as np
 from PIL import Image, ImageTk
-from sklearn.decomposition import PCA
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
-import time
-import gc
 
 from commons.annotating import create_annotation, parse_annotation, img_name_to_annotation
 from commons.datatypes import Detection
@@ -190,7 +189,8 @@ class Labelfficient:
         self.offset = np.zeros(2, dtype=int)
 
         self.STATE = {'click': False, 'x': 0, 'y': 0, 'create': False,
-                      'tracking_box': None, 'resizing_box': None, 'mouse_pos': None}
+                      'tracking_box': None, 'resizing_box': None, 'mouse_pos': None,
+                      'changing_class': False}
 
         self.bbox_id_list = []
         self.bbox_id = None
@@ -643,6 +643,8 @@ class Labelfficient:
         return self.class_names[sel[0]]
 
     def mouse_release(self, event):
+        self.change_class(event)
+        self.STATE['changing_class'] = False
         self.clear_points()
         x, y = self.get_pos(event)
         if self.STATE['resizing_box'] is not None:
@@ -688,42 +690,60 @@ class Labelfficient:
         if inside:
             self.del_bbox(closest_box, save=True)
 
+    def change_class(self, event):
+        if not self.STATE['changing_class']:
+            return
+        mouse_pos = self.get_mouse_pos(event)
+        closest_box, distance, inside = self.get_closest_box(mouse_pos)
+        if closest_box is None:
+            return
+        label = self.get_sel_label(fail_safe=True)
+        if not label:
+            self.STATE['changing_class'] = False
+            return
+        self.class_list[closest_box] = label
+        self.change_bbox(closest_box)
+
     def mouse_click(self, event):
         self.clear_points()
-        x, y = self.get_pos(event)
-        if self.STATE['resizing_box'] is not None or self.STATE['tracking_box'] is not None:
-            self.mouse_release(event)
-        elif self.STATE['create']:
-            if self.STATE['click']:
-                self.mouse_release(event)
-            else:
-                _x, _y = x + self.offset[0], y + self.offset[1]
-                self.STATE['x'], self.STATE['y'] = _x, _y
-                self.STATE['click'] = True
+        if event.state & Modifiers.CONTROL:
+            self.STATE['changing_class'] = True
+            self.change_bbox(event)
         else:
-            mouse_pos = self.get_mouse_pos(event)
-            closest_box, distance, inside = self.get_closest_box(mouse_pos)
-            if closest_box is None:
-                return
-            bbox = self.bbox_list[closest_box]
-            if distance < 2 * self.distance_thresh:
-                width = bbox[2] - bbox[0]
-                height = bbox[3] - bbox[1]
-                scores = np.array([bbox[0] + 0.25 * width - mouse_pos[0],
-                                   bbox[1] + 0.25 * height - mouse_pos[1],
-                                   mouse_pos[0] - (bbox[2] - 0.25 * width),
-                                   mouse_pos[1] - (bbox[3] - 0.25 * height)])
-                threshold = max(scores[np.argsort(scores)[-3]], 0)
-                mask = scores > threshold
+            x, y = self.get_pos(event)
+            if self.STATE['resizing_box'] is not None or self.STATE['tracking_box'] is not None:
+                self.mouse_release(event)
+            elif self.STATE['create']:
+                if self.STATE['click']:
+                    self.mouse_release(event)
+                else:
+                    _x, _y = x + self.offset[0], y + self.offset[1]
+                    self.STATE['x'], self.STATE['y'] = _x, _y
+                    self.STATE['click'] = True
+            else:
+                mouse_pos = self.get_mouse_pos(event)
+                closest_box, distance, inside = self.get_closest_box(mouse_pos)
+                if closest_box is None:
+                    return
+                bbox = self.bbox_list[closest_box]
+                if distance < 2 * self.distance_thresh:
+                    width = bbox[2] - bbox[0]
+                    height = bbox[3] - bbox[1]
+                    scores = np.array([bbox[0] + 0.25 * width - mouse_pos[0],
+                                       bbox[1] + 0.25 * height - mouse_pos[1],
+                                       mouse_pos[0] - (bbox[2] - 0.25 * width),
+                                       mouse_pos[1] - (bbox[3] - 0.25 * height)])
+                    threshold = max(scores[np.argsort(scores)[-3]], 0)
+                    mask = scores > threshold
 
-                self.STATE['resizing_box'] = (closest_box,
-                                              *mask,
-                                              *bbox)
-            elif inside:
-                self.STATE['tracking_box'] = (closest_box,
-                                              (bbox[0] + bbox[2]) / 2 - mouse_pos[0],
-                                              (bbox[1] + bbox[3]) / 2 - mouse_pos[1],
-                                              *bbox)
+                    self.STATE['resizing_box'] = (closest_box,
+                                                  *mask,
+                                                  *bbox)
+                elif inside:
+                    self.STATE['tracking_box'] = (closest_box,
+                                                  (bbox[0] + bbox[2]) / 2 - mouse_pos[0],
+                                                  (bbox[1] + bbox[3]) / 2 - mouse_pos[1],
+                                                  *bbox)
 
     def draw_bbox(self, bbox, width, outline, text=''):
         rect_id = self.main_panel.create_rectangle(bbox[0], bbox[1], bbox[2], bbox[3], width=width, outline=outline)
@@ -739,6 +759,7 @@ class Labelfficient:
             self.main_panel.delete(idx)
 
     def mouse_move(self, event=None):
+        self.change_class(event)
         x, y = self.get_pos(event)
         _x, _y = x + self.offset[0], y + self.offset[1]
         mouse_pos = self.get_mouse_pos(event)
