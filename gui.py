@@ -709,7 +709,7 @@ class Labelfficient:
         self.clear_points()
         if event.state & Modifiers.CONTROL:
             self.STATE['changing_class'] = True
-            self.change_bbox(event)
+            self.change_class(event)
         else:
             x, y = self.get_pos(event)
             if self.STATE['resizing_box'] is not None or self.STATE['tracking_box'] is not None:
