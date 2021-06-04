@@ -560,6 +560,7 @@ class Labelfficient:
     def clear_points(self):
         for point in self.points:
             self.main_panel.delete(point)
+        self.points.clear()
 
     @staticmethod
     def get_edge_points(bbox):
