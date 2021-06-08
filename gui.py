@@ -522,7 +522,7 @@ class Labelfficient:
         if new_class is None:
             new_class = self.class_entry.get()
         new_class = ' '.join(new_class.split())
-        self.add_classes([new_class])
+        self.add_classes(new_class)
         self.class_listbox.focus()
         idx = self.class_names.index(new_class)
         self.class_listbox.see(idx)
