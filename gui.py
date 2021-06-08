@@ -24,7 +24,6 @@ from commons.utils import get_all_files, makedirs2file
 
 DEFAULT_PATH = ''
 # colors for the bounding boxes
-COLORS = ['red', 'blue', 'green', 'black', 'pink']
 IMG_SIZE = 64
 BATCH_SIZE = 32
 FORMAT = ['.jpg', '.jpeg', '.png']
@@ -695,7 +694,7 @@ class Labelfficient:
                                    'initial': self.STATE['tracking_box'][3:7]})
             self.STATE['tracking_box'] = None
         elif self.STATE['click']:
-            label = self.get_sel_label()
+            label = self.STATE['label']
             if label is not None:
                 _x, _y = x + self.offset[0], y + self.offset[1]
                 x1, x2 = min(self.STATE['x'], _x), max(self.STATE['x'], _x)
@@ -757,7 +756,11 @@ class Labelfficient:
                 else:
                     _x, _y = x + self.offset[0], y + self.offset[1]
                     self.STATE['x'], self.STATE['y'] = _x, _y
-                    self.STATE['click'] = True
+
+                    self.STATE['label'] = self.get_sel_label()
+                    if self.STATE['label'] is not None:
+                        self.STATE['cur_color'] = self.class_colors[self.class_names.index(self.STATE['label'])]
+                        self.STATE['click'] = True
             else:
                 mouse_pos = self.get_mouse_pos(event)
                 closest_box, distance, inside = self.get_closest_box(mouse_pos)
@@ -832,8 +835,6 @@ class Labelfficient:
                 coords[i] = mouse_pos[i % 2] + offsets[i] + g_off[i % 2]
             self.change_bbox(box_id)
         elif self.STATE['click']:
-            if 'cur_color' not in self.STATE:
-                self.STATE['cur_color'] = COLORS[len(self.bbox_list) % len(COLORS)]
             self.bbox_id = self.draw_bbox([self.STATE['x'], self.STATE['y'], _x, _y], width=2,
                                           outline=self.STATE['cur_color'], text=self.get_sel_label(fail_safe=True))
         else:
