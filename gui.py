@@ -8,6 +8,7 @@ import tkinter.messagebox
 import warnings
 from collections import deque
 
+import re
 import cv2
 import numpy as np
 from PIL import Image, ImageTk
@@ -398,7 +399,8 @@ class Labelfficient:
         for _format in FORMAT:
             images += get_all_files(image_dir, _format)
 
-        images = np.array(sorted(images))
+        images = np.array(sorted(images,
+                                 key=lambda x: (*[int(s) for s in re.findall(r'\d+', x)], x)))
 
         if self._sort_var.get():
             dataset = ImagesDataset(images, resize=IMG_SIZE)
@@ -433,6 +435,7 @@ class Labelfficient:
         self.watched = [self.cur]
         self.total = len(self.image_list)
         self.load_image()
+        self.parent.focus()
 
     def find_outlier(self, _=None):
         if self.features is None:
