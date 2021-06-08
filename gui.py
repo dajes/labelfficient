@@ -54,6 +54,40 @@ class KeyCodes:
     ARROW_L = 113 if POSIX else 37
 
 
+def rgb2hex(*rgb_color):
+    if isinstance(rgb_color[0], tuple):
+        rgb_color = rgb_color[0]
+    assert len(rgb_color) == 3
+    return "#%02x%02x%02x" % rgb_color
+
+
+def cvt_color(color, code=cv2.COLOR_HSV2RGB):
+    if isinstance(color[0], tuple):
+        color = color[0]
+    assert len(color) == 3
+    return type(color)(cv2.cvtColor(np.array(color, dtype=np.uint8)[None, None], code)[0, 0])
+
+
+_to_float = np.float32(1 / 255)
+
+
+def generate_next_color(hsvs):
+    if len(hsvs) == 0:
+        return cvt_color((0, 255, 0), cv2.COLOR_RGB2HSV)
+    hues = np.array(hsvs, dtype=np.int32)
+    max_distance = -1
+    best_color = None
+    for _ in range(1000):
+        color = (np.random.random(3) * [256, 150, 100] + [0, 106, 156]).astype(np.int32)
+        saturations = np.maximum(color[None, 1], hues[:, 1]) * _to_float
+        values = np.maximum(color[None, 2], hues[:, 2]) * _to_float
+        distance = np.min((saturations * values) * ((color[None] - hues) ** 2).sum(1))
+        if distance > max_distance:
+            max_distance = distance
+            best_color = color
+    return tuple(best_color)
+
+
 # noinspection PyTypeChecker,PyUnresolvedReferences
 class Labelfficient:
     BBOX_FORMAT = '%s [%d, %d, %d, %d]'
@@ -186,6 +220,8 @@ class Labelfficient:
         self.k = 1
         self.scale = 1
         self.class_names = []
+        self.class_colors = []
+        self.hsv_class_colors = []
         self.undo_list = deque(maxlen=50)
         self.offset = np.zeros(2, dtype=int)
 
@@ -457,34 +493,31 @@ class Labelfficient:
 
     def load_labels(self, _=None, objects=None):
         self.clear_bbox()
-        class_names = set()
         if os.path.exists(self.label_path) and objects is None:
             with open(self.label_path, 'r') as ann:
                 _, objects = parse_annotation(ann.read())
         if objects is not None:
-            for ann in objects:
+            for ann in sorted(objects, key=lambda x: x['name']):
                 bbox = ann['bbox']
                 label = ann['name']
                 if label not in self.class_names:
-                    class_names.add(label)
-                color = COLORS[(len(self.bbox_list) - 1) % len(COLORS)]
+                    self.add_classes(label)
+                color = self.class_colors[self.class_names.index(label)]
                 self.class_list.append(label)
                 self.bbox_list.append(bbox)
                 self.color_list.append(color)
                 _bbox = self._to_real_coords(bbox)
                 rect_id = self.draw_bbox(_bbox, width=2, outline=color, text=label)
                 self.bbox_id_list.append(rect_id)
-        self.add_classes(class_names)
 
-    def add_classes(self, class_names):
-        class_names = [name for name in class_names if name not in self.class_names]
-        if len(class_names) > 0:
-            class_names = list(sorted(class_names))
-            self.class_names = class_names + self.class_names
-            for i, class_name in reversed(list(enumerate(class_names))):
-                self.class_listbox.insert(0, class_name)
-                self.class_listbox.itemconfig(0,
-                                              fg=COLORS[(len(self.class_names) - len(class_names) + i) % len(COLORS)])
+    def add_classes(self, class_name):
+        self.class_listbox.insert(0, class_name)
+        hsv_color = generate_next_color(self.hsv_class_colors)
+        fg = rgb2hex(cvt_color(hsv_color))
+        self.class_names.insert(0, class_name)
+        self.class_colors.insert(0, fg)
+        self.hsv_class_colors.insert(0, hsv_color)
+        self.class_listbox.itemconfig(0, fg=fg)
 
     def press_class_btn(self, new_class=None):
         if new_class is None:
@@ -706,6 +739,7 @@ class Labelfficient:
             self.STATE['changing_class'] = False
             return
         self.class_list[closest_box] = label
+        self.color_list[closest_box] = self.class_colors[self.class_names.index(label)]
         self.change_bbox(closest_box)
 
     def mouse_click(self, event):
