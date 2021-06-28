@@ -2,13 +2,13 @@ from __future__ import division
 
 import gc
 import os
+import re
 import time
 import tkinter as tk
 import tkinter.messagebox
 import warnings
 from collections import deque
 
-import re
 import cv2
 import numpy as np
 from PIL import Image, ImageTk
@@ -28,6 +28,7 @@ IMG_SIZE = 64
 BATCH_SIZE = 32
 FORMAT = ['.jpg', '.jpeg', '.png']
 POSIX = os.name == 'posix'
+MAX_PING = 80
 
 HALF = 1 / 2 ** 1.5
 
@@ -684,9 +685,12 @@ class Labelfficient:
         self.clear_points()
         x, y = self.get_pos(event)
         if self.STATE['resizing_box'] is not None:
+            idx = self.STATE['resizing_box'][0]
             self.undo_list.append({'action': 'resize',
-                                   'id': self.STATE['resizing_box'][0],
+                                   'id': idx,
                                    'initial': self.STATE['resizing_box'][5:9]})
+            self.bbox_list[idx][0], self.bbox_list[idx][2] = sorted([self.bbox_list[idx][0], self.bbox_list[idx][2]])
+            self.bbox_list[idx][1], self.bbox_list[idx][3] = sorted([self.bbox_list[idx][1], self.bbox_list[idx][3]])
             self.STATE['resizing_box'] = None
         elif self.STATE['tracking_box'] is not None:
             self.undo_list.append({'action': 'move',
@@ -723,8 +727,7 @@ class Labelfficient:
         closest_box, distance, inside = self.get_closest_box(mouse_pos)
         if closest_box is None:
             return
-        if inside:
-            self.del_bbox(closest_box, save=True)
+        self.del_bbox(closest_box, save=True)
 
     def change_class(self, event):
         if not self.STATE['changing_class']:
@@ -761,6 +764,9 @@ class Labelfficient:
                     if self.STATE['label'] is not None:
                         self.STATE['cur_color'] = self.class_colors[self.class_names.index(self.STATE['label'])]
                         self.STATE['click'] = True
+                        self.bbox_id = self.draw_bbox([_x, _y, _x, _y], width=2,
+                                                      outline=self.STATE['cur_color'],
+                                                      text=self.get_sel_label(fail_safe=True))
             else:
                 mouse_pos = self.get_mouse_pos(event)
                 closest_box, distance, inside = self.get_closest_box(mouse_pos)
@@ -848,7 +854,9 @@ class Labelfficient:
             self.STATE['click'] = False
 
     def change_bbox(self, idx):
-        self.delete_bbox(self.bbox_id_list[idx])
+        _bbox_idx = self.bbox_id_list[idx]
+        if _bbox_idx is not None:
+            self.delete_bbox(_bbox_idx)
         _coords = self._get_real_bbox(idx)
         self.bbox_id_list[idx] = self.draw_bbox(_coords, width=2, outline=self.color_list[idx],
                                                 text=self.class_list[idx])
@@ -881,13 +889,23 @@ class Labelfficient:
             gc.collect()
             self.last_clear = time.monotonic()
 
-    def prev_image(self, _=None):
+    @staticmethod
+    def event_ping(event):
+        if not hasattr(event, 'time'):
+            return 0.
+        return int(time.monotonic() * 1e3) - event.time
+
+    def prev_image(self, event=None):
+        if self.event_ping(event) > MAX_PING:
+            return
         self.save_image()
         if self.cur > 0:
             self.cur -= 1
             self.load_image()
 
-    def next_image(self, _=None, load_labels=True):
+    def next_image(self, event=None, load_labels=True):
+        if self.event_ping(event) > MAX_PING:
+            return
         self.save_image()
         if self.cur < self.total - 1:
             self.cur += 1
