@@ -78,10 +78,11 @@ def generate_next_color(hsvs):
     max_distance = -1
     best_color = None
     for _ in range(1000):
-        color = (np.random.random(3) * [256, 150, 100] + [0, 106, 156]).astype(np.int32)
+        color = (np.random.random(3) * [360, 150, 100] + [0, 106, 156]).astype(np.int32)
         saturations = np.maximum(color[None, 1], hues[:, 1]) * _to_float
         values = np.maximum(color[None, 2], hues[:, 2]) * _to_float
-        distance = np.min((saturations * values) * ((color[None] - hues) ** 2).sum(1))
+        distance = np.min((saturations * values) * np.minimum((color[None, 0] - hues[:, 0]) ** 2,
+                                                              (color[None, 0] - hues[:, 0] - 255) ** 2))
         if distance > max_distance:
             max_distance = distance
             best_color = color
