@@ -51,6 +51,8 @@ hotkeys and almost all functionality of the tool is available only by using hotk
 | Esc         | If some text field is active, remove focus from it. Also resets bounding box as the former one.              |
 |         A/D | Load previous/next image from sequence                                                                       |
 | G           | Predict position of each of the current boxes on the next frame                                              |
+| C           | Copy position and class of the selected box to the next frame                                                |
+| V           | Predict position of the selected box on the next frame                                                       |
 | F           | Find outlier image and move to it, works only when a directory was  loaded with pixel sorting option enabled |
 | R           | Reload annotations from disk                                                                                 |
 | Ctrl-Z      | Undo last action (up to 50 at a time). Warning! When loading another image, history is being  cleared.       |
