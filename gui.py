@@ -265,6 +265,8 @@ class Labelfficient:
         self.uncased_bind("a", self.prev_image)
         self.uncased_bind("d", self.next_image)
         self.uncased_bind("g", self.predict_next_image)
+        self.uncased_bind("c", self.translate_box)
+        self.uncased_bind("v", self.smart_translate_box)
         self.uncased_bind("f", self.find_outlier)
         self.main_panel.grid(row=1, column=0, rowspan=9, columnspan=2, sticky=tk.W + tk.N)
         self.main_panel.bind('<Enter>', self._enter_main)
@@ -492,11 +494,7 @@ class Labelfficient:
 
         self.go_to_image(idx=unwatched[np.argmax(min_distances)])
 
-    def load_labels(self, _=None, objects=None):
-        self.clear_bbox()
-        if os.path.exists(self.label_path) and objects is None:
-            with open(self.label_path, 'r') as ann:
-                _, objects = parse_annotation(ann.read())
+    def add_objects(self, objects):
         if objects is not None:
             for ann in sorted(objects, key=lambda x: x['name']):
                 bbox = ann['bbox']
@@ -510,6 +508,14 @@ class Labelfficient:
                 _bbox = self._to_real_coords(bbox)
                 rect_id = self.draw_bbox(_bbox, width=2, outline=color, text=label)
                 self.bbox_id_list.append(rect_id)
+
+    def load_labels(self, _=None, objects=None, load_anyway=False):
+        self.clear_bbox()
+        self.add_objects(objects)
+        if os.path.exists(self.label_path) and (load_anyway or objects is None):
+            with open(self.label_path, 'r') as ann:
+                _, objects = parse_annotation(ann.read())
+                self.add_objects(objects)
 
     def add_classes(self, class_name):
         self.class_listbox.insert(0, class_name)
@@ -943,6 +949,27 @@ class Labelfficient:
         cur_img = np.array(self.img)
         tracked = self.track(prev_img, cur_img, prev_det)
         self.load_labels(objects=tracked)
+
+    def translate_box(self, event=None):
+        mouse_pos = self.get_mouse_pos(event)
+        closest_box, distance, inside = self.get_closest_box(mouse_pos)
+        if closest_box is None:
+            return
+        prev_det = [Detection(self.class_list[closest_box], self.bbox_list[closest_box])]
+        self.next_image(event, load_labels=False)
+        self.load_labels(objects=[{'bbox': det.bbox, 'name': det.name} for det in prev_det], load_anyway=True)
+
+    def smart_translate_box(self, event=None):
+        mouse_pos = self.get_mouse_pos(event)
+        closest_box, distance, inside = self.get_closest_box(mouse_pos)
+        if closest_box is None:
+            return
+        prev_det = [Detection(self.class_list[closest_box], self.bbox_list[closest_box])]
+        prev_img = np.array(self.img)
+        self.next_image(event, load_labels=False)
+        cur_img = np.array(self.img)
+        tracked = self.track(prev_img, cur_img, prev_det)
+        self.load_labels(objects=tracked, load_anyway=True)
 
 
 if __name__ == '__main__':
