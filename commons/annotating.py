@@ -1,7 +1,5 @@
+import os
 import re
-from typing import List, Union
-
-import numpy as np
 
 
 def img_name_to_annotation(img_name: str) -> str:
@@ -43,14 +41,14 @@ def parse_annotation(annotation):
     for obj in objects:
         for field in {'xmin', 'xmax', 'ymin', 'ymax'}:
             obj[field] = float(obj[field])
-        obj['bbox'] = np.array([obj['xmin'], obj['ymin'], obj['xmax'], obj['ymax']])
+        obj['bbox'] = [obj['xmin'], obj['ymin'], obj['xmax'], obj['ymax']]
     return head, objects
 
 
 essential_fields = {'{name}', '{xmin}', '{ymin}', '{xmax}', '{ymax}'}
 
 
-def create_annotation(name: str, labels: List[str], bboxes: List[List[Union[int, float]]], width: int,
+def create_annotation(name: str, labels: str, bboxes, width: int,
                       height: int) -> str:
     """
     Create raw annotation from the values
@@ -85,6 +83,29 @@ def create_annotation(name: str, labels: List[str], bboxes: List[List[Union[int,
 
 
 def get_annotation_format():
+    if not os.path.exists('annotation_format.txt'):
+        with open('annotation_format.txt', 'w') as f:
+            f.write('''------------------------FILE FORMAT----------------------------------------------
+xml
+------------------------HEAD-----------------------------------------------------
+<annotation>
+    <filename>{name}</filename>
+    <size>
+        <width>{width}</width>
+        <height>{height}</height>
+    </size>
+-----------------------FOR EACH OBJECT--------------------------------------------
+    <object>
+        <name>{name}</name>
+        <bndbox>
+            <xmin>{xmin}</xmin>
+            <ymin>{ymin}</ymin>
+            <xmax>{xmax}</xmax>
+            <ymax>{ymax}</ymax>
+        </bndbox>
+    </object>
+----------------------ENDING-----------------------------------------------------
+</annotation>''')
     with open('annotation_format.txt', 'r') as f:
         annotation_format = f.read()
     lines = annotation_format.split('\n')

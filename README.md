@@ -8,6 +8,17 @@ Labelfficient is a simple yet customizable and efficient tool for creating objec
 
 Go to the project directory
 
+### For minimalistic version (without tracking):
+```
+pip install pillow
+```
+Then when you have PIL you can run the GUI!
+```
+python simple_gui.py
+```
+
+### For advanced (with tracking)
+
 ### Install dependencies 
 ```
 conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
@@ -44,22 +55,22 @@ Labelfficient main priority is labeling with a minimal amount of effort, so the 
 hotkeys and almost all functionality of the tool is available only by using hotkeys.
 
 ### List of all hotkeys and of their use cases
-|         Key |                                                                                                  Description |
-|------------:|-------------------------------------------------------------------------------------------------------------:|
-|           N | Start/stop creating bounding box                                                                             |
-|           S | Reset bounding box if one is being drawn at the moment.                                                      |
-| Esc         | If some text field is active, remove focus from it. Also resets bounding box as the former one.              |
-|         A/D | Load previous/next image from sequence                                                                       |
-| G           | Predict position of each of the current boxes on the next frame                                              |
-| C           | Copy position and class of the selected box to the next frame                                                |
-| V           | Predict position of the selected box on the next frame                                                       |
-| F           | Find outlier image and move to it, works only when a directory was  loaded with pixel sorting option enabled |
-| R           | Reload annotations from disk                                                                                 |
-| Ctrl-Z      | Undo last action (up to 50 at a time). Warning! When loading another image, history is being  cleared.       |
-| Ctrl-S      | Save annotation for the current image. Autosaved when switching to another image.                            |
-| Ctrl-Scroll | Zoom in and out using mouse wheel                                                                            |
-| Right-Click | Deletes a bounding box if the cursor points on any.                                                          |
-| Ctrl-Click  | Until the mouse key is released, all boxes that the mouse is hovered on are changed to the active one.       |
+|         Key |                                                                                                   Description |
+|------------:|--------------------------------------------------------------------------------------------------------------:|
+|           N |                                                                              Start/stop creating bounding box |
+|           S |                                                       Reset bounding box if one is being drawn at the moment. |
+| Esc         |               If some text field is active, remove focus from it. Also resets bounding box as the former one. |
+|         A/D |                                                                        Load previous/next image from sequence |
+| G           |                                               Predict position of each of the current boxes on the next frame |
+| C           |                                                 Copy position and class of the selected box to the next frame |
+| V           |                                                        Predict position of the selected box on the next frame |
+| F           |  Find outlier image and move to it, works only when a directory was  loaded with pixel sorting option enabled |
+| R           |                                                                                  Reload annotations from disk |
+| Ctrl-Z      |        Undo last action (up to 50 at a time). Warning! When loading another image, history is being  cleared. |
+| Ctrl-S      |                             Save annotation for the current image. Autosaved when switching to another image. |
+| Ctrl-Scroll |                                                                             Zoom in and out using mouse wheel |
+| Right-Click |                                                           Deletes a bounding box if the cursor points on any. |
+| Ctrl-Click  | Until the mouse key is released, all boxes that the mouse is hovered on are changed to the active class name. |
 
 ---
 
