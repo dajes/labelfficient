@@ -210,8 +210,8 @@ class Labelfficient:
         self.offset = [0, 0]
 
         self.STATE = {'click': False, 'x': 0, 'y': 0, 'create': False,
-                      'tracking_box': None, 'resizing_box': None, 'mouse_pos': None,
-                      'changing_class': False, 'cur_color':None}
+                      'tracking_box': None, 'resizing_box': None, 'mouse_pos': None, 'changing_class': False,
+                      'yaro_mod': False}
 
         self.bbox_id_list = []
         self.bbox_id = None
