@@ -211,7 +211,7 @@ class Labelfficient:
 
         self.STATE = {'click': False, 'x': 0, 'y': 0, 'create': False,
                       'tracking_box': None, 'resizing_box': None, 'mouse_pos': None,
-                      'changing_class': False}
+                      'changing_class': False, 'cur_color':None}
 
         self.bbox_id_list = []
         self.bbox_id = None
@@ -244,6 +244,7 @@ class Labelfficient:
         self.uncased_bind("<Escape>", self.cancel_bbox)
         self.uncased_bind("r", self.load_labels)
         self.uncased_bind("n", self.toggle_box_creation)
+        self.uncased_bind("y", self.toggle_yaro_mod)
         self.uncased_bind("s", self.cancel_bbox)
         self.uncased_bind("a", self.prev_image)
         self.uncased_bind("d", self.next_image)
@@ -652,10 +653,15 @@ class Labelfficient:
     def toggle_box_creation(self, _=None):
         self.clear_points()
         self.STATE['create'] ^= True
+        if self.STATE.get("yaro_mod", False):
+            self.STATE['create'] = True
         self.STATE['click'] = False
         self.default_cursor = 'tcross' if self.STATE['create'] else ''
         self.main_panel.config(cursor=self.default_cursor)
         self.remove_target_lines()
+
+    def toggle_yaro_mod(self, _=None):
+        self.STATE['yaro_mod'] ^= True
 
     def clear_points(self):
         for point in self.points:
