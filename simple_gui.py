@@ -189,6 +189,18 @@ class Labelfficient:
         except ValueError:
             return '#aaaaaa'
 
+    def cyrillic_support(self, event):
+        key_pressed = event.char
+        cyrillic = "йцукенгшщзхїфівапролджєячсмитьбюЙЦУКЕНГШЩЗХЇФІВАПРОЛДЖЄЯЧСМИТЬБЮ"
+        latin = "qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP[]ASDFGHJKL;'ZXCVBNM,."
+        if key_pressed in cyrillic:
+            key_pressed = latin[cyrillic.index(event.char)]
+            self.main_panel.event_generate(f"<KeyPress-{key_pressed}>")
+        # for <control-...> keypresses
+        elif event.keysym in cyrillic:
+            key_pressed = latin[cyrillic.index(event.keysym)]
+            self.main_panel.event_generate(f"<Control-{key_pressed}>")
+
     def __init__(self, master):
         self.images = []
         self.labels = []
@@ -201,6 +213,7 @@ class Labelfficient:
         self.frame = tk.Frame(self.parent)
         self.frame.pack(fill=tk.BOTH, expand=1)
         self.parent.resizable(width=tk.TRUE, height=tk.TRUE)
+        self.parent.bind("<Key>", self.cyrillic_support)
 
         self.cur = 0
         self.tk_img = None
