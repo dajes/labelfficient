@@ -170,12 +170,6 @@ class Labelfficient:
             elif event.keycode == KeyCodes.A and event.state & Modifiers.CONTROL and not event.state & Modifiers.SHIFT:
                 entry.select_range(0, tk.END)
             elif str(event.char).isprintable():
-                # convert cyrillic to latin
-                if event.state & Modifiers.CAPS_LOCK:
-                    if event.char in 'йцукенгшщзхъфывапролджэячсмитьбю':
-                        event.char = chr(ord(event.char) - ord('а') + ord('a'))
-                    elif event.char in 'ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ':
-                        event.char = chr(ord(event.char) - ord('А') + ord('A'))
                 entry.insert(tk.END, str(event.char))
             else:
                 print(event.keysym, repr(event.char), event.keycode)
