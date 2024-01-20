@@ -4,7 +4,7 @@ import os
 import time
 import tkinter as tk
 import tkinter.font as tkFont
-
+from tkinter import messagebox
 from PIL import Image, ImageTk
 
 from commons.annotating import parse_annotation, img_name_to_annotation, create_annotation
@@ -170,6 +170,12 @@ class Labelfficient:
             elif event.keycode == KeyCodes.A and event.state & Modifiers.CONTROL and not event.state & Modifiers.SHIFT:
                 entry.select_range(0, tk.END)
             elif str(event.char).isprintable():
+                # convert cyrillic to latin
+                if event.state & Modifiers.CAPS_LOCK:
+                    if event.char in 'йцукенгшщзхъфывапролджэячсмитьбю':
+                        event.char = chr(ord(event.char) - ord('а') + ord('a'))
+                    elif event.char in 'ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ':
+                        event.char = chr(ord(event.char) - ord('А') + ord('A'))
                 entry.insert(tk.END, str(event.char))
             else:
                 print(event.keysym, repr(event.char), event.keycode)
@@ -742,12 +748,12 @@ class Labelfficient:
         sel = self.class_listbox.curselection()
         if len(sel) == 0:
             if not fail_safe:
-                tk.messagebox.showerror("Please select a class",
+                messagebox.showerror("Please select a class",
                                         "You should select a class you are trying to add from the right listbox")
             return '' if fail_safe else None
         elif len(sel) > 2:
             if not fail_safe:
-                tk.messagebox.showerror("Please select only 1 class",
+                messagebox.showerror("Please select only 1 class",
                                         "You should select 1 class you are trying to add from the right listbox")
             return '' if fail_safe else None
         return self.class_names[sel[0]]
