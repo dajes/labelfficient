@@ -998,7 +998,7 @@ class Labelfficient:
 
     @staticmethod
     def event_ping(event):
-        return int(time.monotonic() * 1e3) - event.time if hasattr(event, 'time') else 0.0
+        return int(time.monotonic() * 1e3) - event.time if hasattr(event, 'time') and event.time != 0 else 0.0
 
     def prev_image(self, event=None):
         if self.event_ping(event) > MAX_PING:
@@ -1012,6 +1012,7 @@ class Labelfficient:
 
     def next_image(self, event=None, load_labels=True):
         if self.event_ping(event) > MAX_PING:
+            print(f"event droped because of ping: {self.event_ping(event)}ms")
             return
         self.save_image()
         if self.cur >= len(self.images) - 1:
