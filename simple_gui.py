@@ -2,11 +2,13 @@ import gc
 import io
 import os
 import time
+from typing import Tuple, List
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
+from predictors.basic import BasicPredictor
 from commons.annotating import parse_annotation, img_name_to_annotation, create_annotation
 
 cache_path = '.cache'
@@ -76,10 +78,10 @@ def get_target_size(image_size, target=0.9, return_k=False):
 
 # noinspection PyTypeChecker,PyUnresolvedReferences
 class Labelfficient:
-    BBOX_FORMAT = '%s [%d, %d, %d, %d]'
     RELATIVE_SIZE = 0.7
     POINT_RADIUS = 7
     TARGET_IMG_SIZE = 512
+    PREDICTOR_CLASS = BasicPredictor
 
     def uncased_bind(self, key, func):
         key = key.split('-')
@@ -261,6 +263,7 @@ class Labelfficient:
         self.uncased_bind("s", self.cancel_bbox)
         self.uncased_bind("a", self.prev_image)
         self.uncased_bind("d", self.next_image)
+        self.uncased_bind("g", self.predict_next_image)
         self.uncased_bind("c", self.clear_bbox)
         for i in range(10):
             self.uncased_bind(str(i), self.hotkey)
@@ -322,6 +325,10 @@ class Labelfficient:
         self.set_color()
         self.class_usage = {}
         self.last_load = 0
+        self.predictor = self.load_predictor()
+
+    def load_predictor(self):
+        return self.PREDICTOR_CLASS()
 
     def select_class(self, idx):
         self.class_listbox.select_clear(0, tk.END)
@@ -557,11 +564,11 @@ class Labelfficient:
         for name in order[::-1]:
             self._bubble_class(name)
 
-    def load_labels(self, _=None):
+    def load_labels(self, _=None, provided_label=None):
         if self.cur >= len(self.labels):
             return
         self.clear_bbox()
-        boxes, classes = self.labels[self.cur]
+        boxes, classes = provided_label or self.labels[self.cur]
         shape = [self.img.width, self.img.height] * 2
         for bbox, label in zip(boxes, classes):
             scaled = [c * k for c, k in zip(bbox, shape)]
@@ -1027,10 +1034,22 @@ class Labelfficient:
         else:
             self.load_image()
 
-    def resize_img(self, img):
-        target_size, k = get_target_size(tuple(img.shape[1 - i] for i in range(2)), self.TARGET_IMG_SIZE, return_k=True)
-        img = cv2.resize(img[..., :3], target_size, interpolation=cv2.INTER_NEAREST)
-        return k, img
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
+    def track(self, prev_img: Image, cur_img: Image, rel_boxes: List[Tuple[float, float, float]],
+              prev_classes: List[str]) -> Tuple[List[Tuple[float, float, float, float]], List[str]]:
+        return self.predictor.track(prev_img, cur_img, rel_boxes, prev_classes)
+
+    def predict_next_image(self, _=None):
+        boxes = self.bbox_list
+        shape = [self.img.width, self.img.height] * 2
+        relative = [[round(c / shape[i], 5) for i, c in enumerate(box)] for box in boxes]
+        classes = list(self.class_list)
+        prev_img = self.img
+        self.next_image(_, load_labels=False)
+        cur_img = self.img
+
+        tracked = self.track(prev_img, cur_img, relative, classes)
+        self.load_labels(provided_label=tracked)
 
 
 def main():
