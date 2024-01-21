@@ -4,7 +4,7 @@ import os
 import time
 import tkinter as tk
 import tkinter.font as tkFont
-
+from tkinter import messagebox
 from PIL import Image, ImageTk
 
 from commons.annotating import parse_annotation, img_name_to_annotation, create_annotation
@@ -183,6 +183,18 @@ class Labelfficient:
         except ValueError:
             return '#aaaaaa'
 
+    def cyrillic_support(self, event):
+        key_pressed = event.char
+        cyrillic = "йцукенгшщзхїфівапролджєячсмитьбюЙЦУКЕНГШЩЗХЇФІВАПРОЛДЖЄЯЧСМИТЬБЮ"
+        latin = "qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP[]ASDFGHJKL;'ZXCVBNM,."
+        if key_pressed in cyrillic:
+            key_pressed = latin[cyrillic.index(event.char)]
+            self.main_panel.event_generate(f"<KeyPress-{key_pressed}>")
+        # for <control-...> keypresses
+        elif event.keysym in cyrillic:
+            key_pressed = latin[cyrillic.index(event.keysym)]
+            self.main_panel.event_generate(f"<Control-{key_pressed}>")
+
     def __init__(self, master):
         self.images = []
         self.labels = []
@@ -195,6 +207,7 @@ class Labelfficient:
         self.frame = tk.Frame(self.parent)
         self.frame.pack(fill=tk.BOTH, expand=1)
         self.parent.resizable(width=tk.TRUE, height=tk.TRUE)
+        self.parent.bind("<Key>", self.cyrillic_support)
 
         self.cur = 0
         self.tk_img = None
@@ -210,8 +223,8 @@ class Labelfficient:
         self.offset = [0, 0]
 
         self.STATE = {'click': False, 'x': 0, 'y': 0, 'create': False,
-                      'tracking_box': None, 'resizing_box': None, 'mouse_pos': None,
-                      'changing_class': False}
+                      'tracking_box': None, 'resizing_box': None, 'mouse_pos': None, 'changing_class': False,
+                      'yaro_mod': False}
 
         self.bbox_id_list = []
         self.bbox_id = None
@@ -244,6 +257,7 @@ class Labelfficient:
         self.uncased_bind("<Escape>", self.cancel_bbox)
         self.uncased_bind("r", self.load_labels)
         self.uncased_bind("n", self.toggle_box_creation)
+        self.uncased_bind("y", self.toggle_yaro_mod)
         self.uncased_bind("s", self.cancel_bbox)
         self.uncased_bind("a", self.prev_image)
         self.uncased_bind("d", self.next_image)
@@ -652,10 +666,15 @@ class Labelfficient:
     def toggle_box_creation(self, _=None):
         self.clear_points()
         self.STATE['create'] ^= True
+        if self.STATE.get("yaro_mod", False):
+            self.STATE['create'] = True
         self.STATE['click'] = False
         self.default_cursor = 'tcross' if self.STATE['create'] else ''
         self.main_panel.config(cursor=self.default_cursor)
         self.remove_target_lines()
+
+    def toggle_yaro_mod(self, _=None):
+        self.STATE['yaro_mod'] ^= True
 
     def clear_points(self):
         for point in self.points:
@@ -736,12 +755,12 @@ class Labelfficient:
         sel = self.class_listbox.curselection()
         if len(sel) == 0:
             if not fail_safe:
-                tk.messagebox.showerror("Please select a class",
+                messagebox.showerror("Please select a class",
                                         "You should select a class you are trying to add from the right listbox")
             return '' if fail_safe else None
         elif len(sel) > 2:
             if not fail_safe:
-                tk.messagebox.showerror("Please select only 1 class",
+                messagebox.showerror("Please select only 1 class",
                                         "You should select 1 class you are trying to add from the right listbox")
             return '' if fail_safe else None
         return self.class_names[sel[0]]
@@ -979,7 +998,7 @@ class Labelfficient:
 
     @staticmethod
     def event_ping(event):
-        return int(time.monotonic() * 1e3) - event.time if hasattr(event, 'time') else 0.0
+        return int(time.monotonic() * 1e3) - event.time if hasattr(event, 'time') and event.time != 0 else 0.0
 
     def prev_image(self, event=None):
         if self.event_ping(event) > MAX_PING:
@@ -993,6 +1012,7 @@ class Labelfficient:
 
     def next_image(self, event=None, load_labels=True):
         if self.event_ping(event) > MAX_PING:
+            print(f"event droped because of ping: {self.event_ping(event)}ms")
             return
         self.save_image()
         if self.cur >= len(self.images) - 1:
