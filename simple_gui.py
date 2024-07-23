@@ -6,7 +6,7 @@ from typing import Tuple, List
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import messagebox
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageOps
 
 from predictors.basic import BasicPredictor
 from commons.annotating import parse_annotation, img_name_to_annotation, create_annotation
@@ -491,12 +491,21 @@ class Labelfficient:
         with open(img_path, 'rb') as f:
             image = f.read()
         ann_path = img_name_to_annotation(img_path)
+        img = ImageOps.exif_transpose(Image.open(io.BytesIO(image)))
+
         if os.path.exists(ann_path):
             with open(ann_path, 'r') as f:
                 head, objects = parse_annotation(f.read())
             classes = [obj['name'] for obj in objects]
             size = [float(head[0]['width']), float(head[0]['height'])]
             boxes = [[float(c) / size[i % 2] for i, c in enumerate(obj['bbox'])] for obj in objects]
+
+            if size == [img.height, img.width] and img.height != img.width:
+                # fix for transposed images
+                boxes = [[1 - c[3], c[0], 1 - c[1], c[2]] for c in boxes]
+
+            boxes = [[min(c[0], c[2]), min(c[1], c[3]), max(c[0], c[2]), max(c[1], c[3])] for c in boxes]
+
         else:
             boxes = []
             classes = []
@@ -632,7 +641,7 @@ class Labelfficient:
     def _load_image(self):
         if self.cur >= len(self.images) or self.loaded == self.cur:
             return
-        self.img = Image.open(io.BytesIO(self.images[self.cur]))
+        self.img = ImageOps.exif_transpose(Image.open(io.BytesIO(self.images[self.cur])))
         self.img_shape = self.img.width, self.img.height
         self.update_resolution(self.img.width, self.img.height)
         self.loaded = self.cur
